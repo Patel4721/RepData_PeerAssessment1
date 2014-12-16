@@ -30,7 +30,8 @@ observations in this dataset.
 
 Load the data from https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip
 
-```{r}
+
+```r
 # select CRAN mirror globally
 r <- getOption("repos")
 r["CRAN"] <- "http://cran.us.r-project.org"
@@ -39,7 +40,15 @@ rm(r)
 
 # Install and load the libraries we will need
 install.packages("gridExtra")
+```
 
+```
+## 
+## The downloaded binary packages are in
+## 	/var/folders/9y/wjgl1cg92px74r1kfmshtz080000gn/T//RtmppvySm9/downloaded_packages
+```
+
+```r
 library(ggplot2)
 library(scales)
 library(grid)
@@ -51,7 +60,13 @@ download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.z
               "activity.zip", 
               method="curl")
 date() # Log the date and time when the file is downloaded
+```
 
+```
+## [1] "Mon Dec 15 21:03:00 2014"
+```
+
+```r
 # Unzip and load the file data in a dataframe
 fileName <- unz("activity.zip", "activity.csv")
 activityData <- read.csv(fileName)
@@ -88,8 +103,8 @@ For this part of the assignment, you can ignore the missing values in the datase
 
 1. Make a histogram of the total number of steps taken each day
 
-```{r}
 
+```r
 # Count the number of steps per day using the aggregate function
 dailySteps <- aggregate(steps~as.Date(date), activityData, sum, na.rm = TRUE)
 
@@ -104,17 +119,28 @@ dailyStepsHistogram <- ggplot(dailySteps, aes(x=date, y=steps)) +
 print(dailyStepsHistogram)
 ```
 
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png) 
+
 
 2. Calculate and report the mean and median total number of steps taken per day
 
-```{r}
 
+```r
 # Mean of the total number of steps taken per day
 mean(dailySteps$steps)
+```
 
+```
+## [1] 10766.19
+```
+
+```r
 # Median of the total number of steps taken per day
 median(dailySteps$steps)
+```
 
+```
+## [1] 10765
 ```
 
 The mean number of steps take each day is 10,766.2 and the median number of steps
@@ -128,8 +154,8 @@ We need to aggregate the activity by interval and calculate average per interval
 We also need to add a new column that has the time so the pattern can be seen
 nicely.
 
-```{r}
 
+```r
 dailyPattern <- aggregate(steps~interval, activityData, mean, na.rm = TRUE)
 dailyPattern$time <- as.POSIXct(with(dailyPattern,
                                      paste(interval %/% 100, interval %% 100, sep=":")),
@@ -140,17 +166,22 @@ dailyPatternPlot <- ggplot(dailyPattern, aes(x=time,y=steps)) +
           scale_x_datetime(breaks = date_breaks("2 hour"), labels = date_format("%H:%M"))
 
 print(dailyPatternPlot)
-
 ```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png) 
 
 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
-```{r}
 
+```r
 # Subset the dataframe to show only the row that is equal to the 
 # maximum number of steps taken in a day.  
 dailyPattern[dailyPattern$steps==max(dailyPattern$steps),]
+```
 
+```
+##     interval    steps                time
+## 104      835 206.1698 2014-12-15 08:35:00
 ```
 
 Hence, interval number 104 each day has the maximum number of steps.  That is 206.2 steps.
@@ -165,9 +196,14 @@ Calculate and report the total number of missing values in the dataset (i.e. the
 The code below calculates and reports the total number of missing values in the dataset.
 The answer is:  2304 rows out of the total 17,568 rows have missing values.
 
-```{r}
+
+```r
 # Count the number of rows that have NA for the steps data element
 sum(is.na(activityData$steps))
+```
+
+```
+## [1] 2304
 ```
 
 Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
@@ -176,8 +212,8 @@ To develop a strategy for filling in the missing data, let's first figure out wh
 row has missing values. We'll use the is.na() function above where we calculated the number of columns with missing values. 
 
 
-```{r}
 
+```r
 # Create the NAValues column in the source data set 
 # This column will be set to TRUE if the row has missing values for steps
 activityData$NAValues <- is.na(activityData$steps)
@@ -185,10 +221,28 @@ activityData$NAValues <- is.na(activityData$steps)
 # Aggregate the data to see what days have no activity
 noActivity <- aggregate(NAValues~date, activityData, sum)
 noActivity[noActivity$NAValues !=0, ]
+```
 
+```
+##          date NAValues
+## 1  2012-10-01      288
+## 8  2012-10-08      288
+## 32 2012-11-01      288
+## 35 2012-11-04      288
+## 40 2012-11-09      288
+## 41 2012-11-10      288
+## 45 2012-11-14      288
+## 61 2012-11-30      288
+```
+
+```r
 # Check to see which days of week have no activity
 noActivity$weekday <- weekdays(as.Date(noActivity$date))
 unique(noActivity[noActivity$NAValues !=0, 3])
+```
+
+```
+## [1] "Monday"    "Thursday"  "Sunday"    "Friday"    "Saturday"  "Wednesday"
 ```
 
 From the above data, it seems that days that have NA values does not have any 
@@ -203,8 +257,8 @@ Hence, the strategy for missing missing values will be the mean for the five
 minute interval.  We'll use the mean for intervals by day of week. For example,
 the average steps for each interval on Mondays will be used to fill the missing values for Mondays. 
 
-```{r}
 
+```r
 # Make the reference data set with mean of steps by interval
 reference <- aggregate(steps~interval+weekdays(datetime,abbreviate=TRUE),
                        activityData,
@@ -214,14 +268,13 @@ reference <- aggregate(steps~interval+weekdays(datetime,abbreviate=TRUE),
 # The weekday column will be used to average for that day of week
 colnames(reference) <- c("interval","weekday","averagesteps")
 reference$weekday <- factor(reference$weekday,levels = c("Mon","Tue","Wed","Thu","Fri","Sat","Sun"))
-
 ```
 
 
 Create a new dataset that is equal to the original dataset but with the missing data filled in.
 
-```{r}
 
+```r
 # Add the day of week column to the source data. 
 activityData$weekday <- weekdays(activityData$datetime, abbreviate=TRUE)
 
@@ -235,8 +288,8 @@ fixedActivityData$fixed_steps <- ifelse(is.na(fixedActivityData$steps),
 
 Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
-```{r}
 
+```r
 # Make the histogram for the fixed data
 # We'll use the histogram for the source data from above. 
 # This histogram is stored in the variable: dailyStepsHistogram
@@ -254,13 +307,14 @@ fixedDailyStepsHistogram <- ggplot(fixedDailySteps, aes(x=date, y=steps)) +
 
 # Show the two historgrams
 grid.arrange(dailyStepsHistogram, fixedDailyStepsHistogram, nrow=2)
-
 ```
+
+![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10-1.png) 
 
 To answer the questions regarding imputing values, let's calculate the mean, median, and sum of the fixed data set and compare to the source data set.
 
-```{r}
 
+```r
 # Mean and median of the total number of steps taken per day - source data
 sourceData <- c(mean(dailySteps$steps), median(dailySteps$steps), sum(dailySteps$steps))
 
@@ -273,6 +327,13 @@ colnames(stepData) <- c("mean", "median", "sum")
 stepData
 ```
 
+```
+##                   mean median       sum
+## source     10766.18868  10765 570608.00
+## fixed_data 10821.20960  11015 660093.79
+## difference    55.02092    250  89485.79
+```
+
 As shown, the mean and median changed slightly. A fairly significant number of steps
 were added.  The added number of steps are 89,486 steps. 
 
@@ -280,7 +341,8 @@ were added.  The added number of steps are 89,486 steps.
 ## Are there differences in activity patterns between weekdays and weekends?
 
 
-```{r}
+
+```r
 # Set up the difference data
 # Group the steps by weekend/weekday and interval to find average steps
 
@@ -305,8 +367,9 @@ weekPattern <- aggregate(
 
 # Show the plot 
 ggplot(weekPattern, aes(x=interval,y=steps)) + geom_line() + facet_grid("weekday ~ .")
-
 ```
+
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12-1.png) 
 
 We see from the data that the person is more active during the weekend through
 out the day.  However, the peak steps are taken during weekdays.  Step activity starts
